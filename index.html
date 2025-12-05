@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standard Celeration Chart Dashboard</title>
+    <title>Morningside Academy - Standard Celeration Chart</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,20 +11,14 @@
         <!-- Header -->
         <header class="dashboard-header">
             <div class="header-left">
-                <h1>Standard Celeration Chart</h1>
-                <span class="subtitle">Precision Teaching Dashboard</span>
+                <h1>Morningside Academy</h1>
+                <div class="header-subtitles">
+                    <span class="subtitle">Standard Celeration Chart</span>
+                    <span class="subtitle-divider">&bull;</span>
+                    <span class="subtitle">Precision Teaching Dashboard</span>
+                </div>
             </div>
-            <div class="header-right">
-                <button id="uploadBtn" class="btn btn-primary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    Import JSON
-                </button>
-                <input type="file" id="fileInput" accept=".json" hidden>
-            </div>
+            <input type="file" id="fileInput" accept=".json" hidden>
         </header>
 
         <!-- Main Content -->
@@ -32,19 +26,29 @@
             <!-- Sidebar Controls -->
             <aside class="sidebar">
                 <!-- Student Selector -->
-                <section class="control-section">
-                    <h3 class="section-header" data-section="students">
+                <section class="control-section" data-section="students">
+                    <h3 class="section-header">
                         <span class="section-title">Students</span>
                         <span class="collapse-icon"></span>
                     </h3>
-                    <div id="studentList" class="section-content student-list">
-                        <p class="empty-state">No data loaded</p>
+                    <div class="section-content">
+                        <div id="studentList" class="student-list">
+                            <p class="empty-state">No data loaded</p>
+                        </div>
+                        <button id="uploadBtn" class="btn btn-import">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            Import
+                        </button>
                     </div>
                 </section>
 
                 <!-- Metric Toggles -->
-                <section class="control-section">
-                    <h3 class="section-header" data-section="metrics">
+                <section class="control-section" data-section="metrics">
+                    <h3 class="section-header">
                         <span class="section-title">Metrics</span>
                         <span class="collapse-icon"></span>
                     </h3>
@@ -52,12 +56,12 @@
                         <label class="toggle-item" data-metric="correctPerMinute">
                             <input type="checkbox" checked>
                             <span class="toggle-color" style="background: #2d6a4f;"></span>
-                            <span class="toggle-label">Correct</span>
+                            <span class="toggle-label">Correct/Min</span>
                         </label>
                         <label class="toggle-item" data-metric="errorsPerMinute">
                             <input type="checkbox" checked>
                             <span class="toggle-color" style="background: #9d4444;"></span>
-                            <span class="toggle-label">Errors</span>
+                            <span class="toggle-label">Errors/Min</span>
                         </label>
                         <label class="toggle-item" data-metric="wpm">
                             <input type="checkbox">
@@ -67,25 +71,34 @@
                         <label class="toggle-item" data-metric="accuracy">
                             <input type="checkbox">
                             <span class="toggle-color" style="background: #7b5ea7;"></span>
-                            <span class="toggle-label">Accuracy</span>
+                            <span class="toggle-label">Accuracy %</span>
+                        </label>
+                        <label class="toggle-item" data-metric="prosody">
+                            <input type="checkbox">
+                            <span class="toggle-color" style="background: #b07d3d;"></span>
+                            <span class="toggle-label">Prosody Score</span>
                         </label>
                     </div>
                 </section>
 
                 <!-- Chart Options -->
-                <section class="control-section">
-                    <h3 class="section-header" data-section="options">
-                        <span class="section-title">Options</span>
+                <section class="control-section collapsed" data-section="options">
+                    <h3 class="section-header">
+                        <span class="section-title">Display Options</span>
                         <span class="collapse-icon"></span>
                     </h3>
                     <div class="section-content option-toggles">
                         <label class="toggle-item">
                             <input type="checkbox" id="showCelerationLines" checked>
-                            <span class="toggle-label">Celeration Lines</span>
+                            <span class="toggle-label">Show Celeration Lines</span>
                         </label>
                         <label class="toggle-item">
                             <input type="checkbox" id="showDataPoints" checked>
-                            <span class="toggle-label">Data Points</span>
+                            <span class="toggle-label">Show Data Points</span>
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="showRecordFloor">
+                            <span class="toggle-label">Show Record Floor</span>
                         </label>
                         <label class="toggle-item">
                             <input type="checkbox" id="connectPoints" checked>
@@ -95,8 +108,8 @@
                 </section>
 
                 <!-- Statistics -->
-                <section class="control-section">
-                    <h3 class="section-header" data-section="statistics">
+                <section class="control-section collapsed" data-section="statistics">
+                    <h3 class="section-header">
                         <span class="section-title">Statistics</span>
                         <span class="collapse-icon"></span>
                     </h3>

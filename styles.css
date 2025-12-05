@@ -145,15 +145,26 @@ body {
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+.header-subtitles {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
 .header-left .subtitle {
     font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 400;
     color: var(--brass-light);
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-left: var(--spacing-md);
+    letter-spacing: 0.12em;
     opacity: 0.9;
+}
+
+.subtitle-divider {
+    color: var(--brass);
+    opacity: 0.5;
 }
 
 /* ===== Buttons ===== */
@@ -198,6 +209,33 @@ body {
 }
 
 .btn-primary svg {
+    stroke: var(--ink-deep);
+}
+
+/* Import button in sidebar */
+.btn-import {
+    width: 100%;
+    justify-content: center;
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--brass-shine);
+    border-color: var(--brass-dark);
+    color: var(--ink-deep);
+    font-size: 0.75rem;
+    box-shadow: 0 2px 0 var(--brass-dark), var(--shadow-soft);
+}
+
+.btn-import:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 var(--brass-dark), var(--shadow-medium);
+}
+
+.btn-import:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 var(--brass-dark);
+}
+
+.btn-import svg {
     stroke: var(--ink-deep);
 }
 
@@ -283,7 +321,7 @@ body {
 /* Section content collapse animation */
 .section-content {
     overflow: hidden;
-    transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
     max-height: 500px;
     opacity: 1;
 }
@@ -291,8 +329,6 @@ body {
 .control-section.collapsed .section-content {
     max-height: 0;
     opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
 }
 
 /* ===== Student List ===== */
