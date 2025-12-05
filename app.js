@@ -111,7 +111,13 @@ const state = {
     ctx: null,
     isDragging: false,
     dragStartX: 0,
-    dragStartOffset: 0
+    dragStartOffset: 0,
+    // Range selection state
+    isSelecting: false,
+    selectionStartX: 0,
+    selectionEndX: 0,
+    selectionStartDay: 0,
+    selectionEndDay: 0
 };
 
 // ===== Make functions globally accessible =====
@@ -270,9 +276,24 @@ function initEventListeners() {
         }
     });
 
-    // Drag to pan on chart
+    // Drag to pan on chart (when zoomed in) or select range (when full view)
     state.canvas.addEventListener('mousedown', (e) => {
-        if (state.zoom < 140) { // Only enable drag-pan when zoomed in
+        const rect = state.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        // Check if click is within chart area
+        if (x < CONFIG.margin.left || x > state.canvas.clientWidth - CONFIG.margin.right) return;
+
+        if (state.zoom === 140) {
+            // Full view: start range selection
+            state.isSelecting = true;
+            state.selectionStartX = x;
+            state.selectionEndX = x;
+            state.selectionStartDay = xToDay(x);
+            state.selectionEndDay = state.selectionStartDay;
+            state.canvas.style.cursor = 'col-resize';
+        } else {
+            // Zoomed in: drag to pan
             state.isDragging = true;
             state.dragStartX = e.clientX;
             state.dragStartOffset = state.panOffset;
@@ -281,7 +302,16 @@ function initEventListeners() {
     });
 
     document.addEventListener('mousemove', (e) => {
-        if (state.isDragging) {
+        const rect = state.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+
+        if (state.isSelecting) {
+            // Update selection range
+            state.selectionEndX = Math.max(CONFIG.margin.left, Math.min(x, state.canvas.clientWidth - CONFIG.margin.right));
+            state.selectionEndDay = xToDay(state.selectionEndX);
+            drawChart();
+            drawSelectionOverlay();
+        } else if (state.isDragging) {
             const chartWidth = state.canvas.clientWidth - CONFIG.margin.left - CONFIG.margin.right;
             const pixelsPerDay = chartWidth / state.zoom;
             const dragDelta = state.dragStartX - e.clientX;
@@ -297,11 +327,84 @@ function initEventListeners() {
     });
 
     document.addEventListener('mouseup', () => {
-        if (state.isDragging) {
+        if (state.isSelecting) {
+            state.isSelecting = false;
+            state.canvas.style.cursor = 'default';
+
+            // Calculate selected range
+            const startDay = Math.min(state.selectionStartDay, state.selectionEndDay);
+            const endDay = Math.max(state.selectionStartDay, state.selectionEndDay);
+            const rangeDays = endDay - startDay;
+
+            // Only zoom if range is at least 3 days
+            if (rangeDays >= 3) {
+                state.panOffset = Math.floor(startDay);
+                state.zoom = Math.ceil(rangeDays);
+
+                // Update zoom button states
+                document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
+
+                drawChart();
+                updatePanInfo();
+                updatePanButtons();
+                updateChartSubtitle();
+            } else {
+                // Clear selection and redraw
+                drawChart();
+            }
+        } else if (state.isDragging) {
             state.isDragging = false;
             state.canvas.style.cursor = 'default';
         }
     });
+}
+
+// Convert x coordinate to day number
+function xToDay(x) {
+    const chartWidth = state.canvas.clientWidth - CONFIG.margin.left - CONFIG.margin.right;
+    const relativeX = x - CONFIG.margin.left;
+    const day = (relativeX / chartWidth) * state.zoom + state.panOffset;
+    return Math.max(0, Math.min(state.maxDataDay, day));
+}
+
+// Draw selection overlay
+function drawSelectionOverlay() {
+    if (!state.isSelecting) return;
+
+    const { ctx, canvas } = state;
+    const { margin } = CONFIG;
+    const chartHeight = canvas.clientHeight - margin.top - margin.bottom;
+
+    const startX = Math.min(state.selectionStartX, state.selectionEndX);
+    const endX = Math.max(state.selectionStartX, state.selectionEndX);
+    const width = endX - startX;
+
+    // Draw selection rectangle
+    ctx.save();
+    ctx.fillStyle = 'rgba(196, 163, 90, 0.2)'; // brass with transparency
+    ctx.fillRect(startX, margin.top, width, chartHeight);
+
+    // Draw selection borders
+    ctx.strokeStyle = CONFIG.colors.brass;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
+    ctx.strokeRect(startX, margin.top, width, chartHeight);
+    ctx.setLineDash([]);
+
+    // Draw day labels
+    const startDay = Math.min(state.selectionStartDay, state.selectionEndDay);
+    const endDay = Math.max(state.selectionStartDay, state.selectionEndDay);
+
+    ctx.fillStyle = CONFIG.colors.inkNavy;
+    ctx.font = "600 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'center';
+
+    // Start day label
+    ctx.fillText(`Day ${Math.floor(startDay)}`, startX, margin.top - 8);
+    // End day label
+    ctx.fillText(`Day ${Math.ceil(endDay)}`, endX, margin.top - 8);
+
+    ctx.restore();
 }
 
 // ===== Pan Functions =====
