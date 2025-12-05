@@ -4,7 +4,7 @@ A digital implementation of Ogden Lindsley's Standard Celeration Chart for Preci
 
 ## Live Demo
 
-**[Open the Dashboard](https://YOUR_USERNAME.github.io/standard-celeration-chart/)**
+**[Open the Dashboard](https://lbranigan.github.io/standard-celeration-chart/)**
 
 ## Features
 
