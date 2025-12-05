@@ -91,9 +91,14 @@ const state = {
         connectPoints: true
     },
     zoom: 140, // Current zoom level in days (Full view by default)
+    panOffset: 0, // Starting day for the current view (for panning)
+    maxDataDay: 140, // Maximum day with data (updated when data loads)
     hoveredPoint: null,
     canvas: null,
-    ctx: null
+    ctx: null,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartOffset: 0
 };
 
 // ===== Make functions globally accessible =====
@@ -106,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCanvas();
     initEventListeners();
     drawChart();
+    updatePanInfo();
+    updatePanButtons();
 });
 
 function initCanvas() {
@@ -218,13 +225,108 @@ function initEventListeners() {
     document.getElementById('closeModal').addEventListener('click', () => {
         document.getElementById('infoModal').hidden = true;
     });
+
+    // Pan controls
+    document.getElementById('panLeft').addEventListener('click', () => panChart(-1));
+    document.getElementById('panRight').addEventListener('click', () => panChart(1));
+
+    // Keyboard navigation for panning
+    document.addEventListener('keydown', (e) => {
+        // Only handle if not in an input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            panChart(-1);
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            panChart(1);
+        }
+    });
+
+    // Drag to pan on chart
+    state.canvas.addEventListener('mousedown', (e) => {
+        if (state.zoom < 140) { // Only enable drag-pan when zoomed in
+            state.isDragging = true;
+            state.dragStartX = e.clientX;
+            state.dragStartOffset = state.panOffset;
+            state.canvas.style.cursor = 'grabbing';
+        }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (state.isDragging) {
+            const chartWidth = state.canvas.clientWidth - CONFIG.margin.left - CONFIG.margin.right;
+            const pixelsPerDay = chartWidth / state.zoom;
+            const dragDelta = state.dragStartX - e.clientX;
+            const daysDelta = Math.round(dragDelta / pixelsPerDay);
+
+            const newOffset = state.dragStartOffset + daysDelta;
+            const maxOffset = Math.max(0, state.maxDataDay - state.zoom);
+            state.panOffset = Math.max(0, Math.min(maxOffset, newOffset));
+
+            drawChart();
+            updatePanInfo();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (state.isDragging) {
+            state.isDragging = false;
+            state.canvas.style.cursor = 'default';
+        }
+    });
+}
+
+// ===== Pan Functions =====
+function panChart(direction) {
+    // direction: -1 for left (earlier), +1 for right (later)
+    const panStep = getPanStep();
+    const newOffset = state.panOffset + (direction * panStep);
+    const maxOffset = Math.max(0, state.maxDataDay - state.zoom);
+
+    state.panOffset = Math.max(0, Math.min(maxOffset, newOffset));
+
+    drawChart();
+    updatePanInfo();
+    updatePanButtons();
+}
+
+function getPanStep() {
+    // Pan step based on zoom level
+    if (state.zoom <= 7) return 1; // 1 day for week view
+    if (state.zoom <= 30) return 7; // 1 week for month view
+    if (state.zoom <= 90) return 14; // 2 weeks for quarter view
+    return 30; // 1 month for full view
+}
+
+function updatePanInfo() {
+    const panInfo = document.getElementById('panInfo');
+    const startDay = state.panOffset;
+    const endDay = Math.min(state.panOffset + state.zoom, state.maxDataDay);
+    panInfo.textContent = `Days ${startDay}-${endDay}`;
+}
+
+function updatePanButtons() {
+    const panLeft = document.getElementById('panLeft');
+    const panRight = document.getElementById('panRight');
+    const maxOffset = Math.max(0, state.maxDataDay - state.zoom);
+
+    panLeft.disabled = state.panOffset <= 0;
+    panRight.disabled = state.panOffset >= maxOffset;
 }
 
 // ===== Zoom Functions =====
 function setZoom(days) {
     state.zoom = days;
+    // Reset pan offset when changing zoom, but keep it valid
+    const maxOffset = Math.max(0, state.maxDataDay - state.zoom);
+    state.panOffset = Math.min(state.panOffset, maxOffset);
+
     drawChart();
     updateChartSubtitle();
+    updatePanInfo();
+    updatePanButtons();
 }
 
 function getZoomConfig() {
@@ -292,11 +394,33 @@ function processStudentData(data) {
         state.activeStudents.push(studentId);
     }
 
+    // Update maxDataDay based on all loaded student data
+    updateMaxDataDay();
+
     updateStudentList();
     drawChart();
     updateStats();
     updateLegend();
     updateChartSubtitle();
+    updatePanInfo();
+    updatePanButtons();
+}
+
+function updateMaxDataDay() {
+    let maxDay = 140; // Default to standard SCC range
+
+    state.students.forEach(student => {
+        if (student.assessments) {
+            student.assessments.forEach(assessment => {
+                if (assessment.celeration && assessment.celeration.calendarDay) {
+                    maxDay = Math.max(maxDay, assessment.celeration.calendarDay);
+                }
+            });
+        }
+    });
+
+    // Round up to nearest week and add buffer
+    state.maxDataDay = Math.max(140, Math.ceil((maxDay + 7) / 7) * 7);
 }
 
 // ===== UI Updates =====
@@ -493,6 +617,8 @@ function drawChart() {
 }
 
 function drawGrid(ctx, width, height, xMax, zoomConfig) {
+    const panOffset = state.panOffset;
+
     // Vertical grid lines (calendar days)
     ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
     ctx.lineWidth = 1;
@@ -506,16 +632,18 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
         ctx.stroke();
     }
 
-    // Week number labels at top
+    // Week number labels at top (adjusted for pan offset)
     ctx.fillStyle = 'rgba(6, 182, 212, 0.5)';
     ctx.font = '10px system-ui';
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
-    const maxWeeks = Math.ceil(xMax / 7);
-    for (let week = 0; week <= maxWeeks; week += weekInterval) {
-        const x = (week * 7 / xMax) * width;
-        if (x <= width) {
+    const startWeek = Math.floor(panOffset / 7);
+    const maxWeeks = Math.ceil((panOffset + xMax) / 7);
+    for (let week = startWeek; week <= maxWeeks; week += weekInterval) {
+        const dayInView = (week * 7) - panOffset;
+        const x = (dayInView / xMax) * width;
+        if (x >= 0 && x <= width) {
             ctx.fillText(week.toString(), x, -8);
         }
     }
@@ -560,14 +688,16 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
         ctx.fillText(label, -10, y);
     });
 
-    // X-axis labels
+    // X-axis labels (adjusted for pan offset)
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
     const dayInterval = zoomConfig.dayInterval;
+    const panOffset = state.panOffset;
     for (let day = 0; day <= xMax; day += dayInterval) {
         const x = (day / xMax) * width;
-        ctx.fillText(day.toString(), x, height + 10);
+        const actualDay = day + panOffset;
+        ctx.fillText(actualDay.toString(), x, height + 10);
     }
 }
 
@@ -592,10 +722,11 @@ function drawAxisLabels(ctx, width, height, margin) {
 function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
     const color = CONFIG.metricColors[metric];
     const dataPoints = getDataPoints(student, metric);
+    const panOffset = state.panOffset;
 
     if (dataPoints.length === 0) return;
 
-    // Find the minimum calendar day to normalize
+    // Find the minimum calendar day to normalize (relative to student's first assessment)
     const minDay = Math.min(...dataPoints.map(p => p.day));
 
     // Normalize days relative to first assessment
@@ -604,8 +735,16 @@ function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
         normalizedDay: p.day - minDay
     }));
 
-    // Filter points within zoom range
-    const visiblePoints = normalizedPoints.filter(p => p.normalizedDay <= xMax);
+    // Filter points within visible pan range [panOffset, panOffset + xMax]
+    const visiblePoints = normalizedPoints.filter(p =>
+        p.normalizedDay >= panOffset && p.normalizedDay <= panOffset + xMax
+    );
+
+    // Also get all points up to panOffset + xMax for celeration calculation
+    const pointsForCeleration = normalizedPoints.filter(p => p.normalizedDay <= panOffset + xMax);
+
+    // Helper function to convert normalized day to x position
+    const dayToX = (normalizedDay) => ((normalizedDay - panOffset) / xMax) * chartWidth;
 
     // Draw connecting lines
     if (state.displayOptions.connectPoints && visiblePoints.length > 1) {
@@ -618,7 +757,7 @@ function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
         visiblePoints.forEach(point => {
             if (point.value <= 0) return;
 
-            const x = (point.normalizedDay / xMax) * chartWidth;
+            const x = dayToX(point.normalizedDay);
             const y = valueToY(point.value, chartHeight);
 
             if (!started) {
@@ -633,18 +772,18 @@ function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
         ctx.globalAlpha = 1;
     }
 
-    // Draw celeration line
-    if (state.displayOptions.showCelerationLines && visiblePoints.length >= 2) {
-        const validPoints = visiblePoints.filter(p => p.value > 0);
+    // Draw celeration line (use all points for calculation, but display in visible range)
+    if (state.displayOptions.showCelerationLines && pointsForCeleration.length >= 2) {
+        const validPoints = pointsForCeleration.filter(p => p.value > 0);
         if (validPoints.length >= 2) {
-            drawCelerationLine(ctx, validPoints, color, chartWidth, chartHeight, xMax, metric);
+            drawCelerationLine(ctx, validPoints, color, chartWidth, chartHeight, xMax, metric, panOffset);
         }
     }
 
     // Draw data points
     if (state.displayOptions.showDataPoints) {
         visiblePoints.forEach(point => {
-            const x = (point.normalizedDay / xMax) * chartWidth;
+            const x = dayToX(point.normalizedDay);
             const y = valueToY(point.value > 0 ? point.value : 0.0005, chartHeight);
 
             if (metric === 'errorsPerMinute') {
@@ -661,7 +800,7 @@ function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
     if (state.displayOptions.showRecordFloor) {
         visiblePoints.forEach(point => {
             if (point.countingTimeMin && point.countingTimeMin > 0) {
-                const x = (point.normalizedDay / xMax) * chartWidth;
+                const x = dayToX(point.normalizedDay);
                 const floorValue = 1 / point.countingTimeMin;
                 const y = valueToY(floorValue, chartHeight);
 
@@ -745,7 +884,7 @@ function drawQuestionMark(ctx, x, y, color) {
     ctx.fillText('?', x, y);
 }
 
-function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, metric) {
+function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, metric, panOffset = 0) {
     // Calculate celeration using log-linear regression
     const logPoints = points.map(p => ({
         x: p.normalizedDay,
@@ -764,6 +903,9 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
     // Calculate weekly celeration (multiply per week)
     const weeklyCeleration = Math.pow(10, slope * 7);
 
+    // Helper function to convert day to x position (accounting for pan)
+    const dayToX = (day) => ((day - panOffset) / xMax) * chartWidth;
+
     // Draw the celeration line
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
@@ -773,17 +915,17 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
     const minX = Math.min(...points.map(p => p.normalizedDay));
     const maxX = Math.max(...points.map(p => p.normalizedDay));
 
-    // Extend line slightly beyond data but within zoom range
+    // Extend line slightly beyond data but within visible pan range
     const extendDays = Math.min(3, xMax * 0.1);
-    const startX = Math.max(0, minX - extendDays);
-    const endX = Math.min(xMax, maxX + extendDays);
+    const startX = Math.max(panOffset, minX - extendDays);
+    const endX = Math.min(panOffset + xMax, maxX + extendDays);
 
     const startY = Math.pow(10, intercept + slope * startX);
     const endY = Math.pow(10, intercept + slope * endX);
 
     ctx.beginPath();
-    ctx.moveTo((startX / xMax) * chartWidth, valueToY(startY, chartHeight));
-    ctx.lineTo((endX / xMax) * chartWidth, valueToY(endY, chartHeight));
+    ctx.moveTo(dayToX(startX), valueToY(startY, chartHeight));
+    ctx.lineTo(dayToX(endX), valueToY(endY, chartHeight));
     ctx.stroke();
 
     ctx.setLineDash([]);
@@ -793,8 +935,8 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
     if (isFinite(weeklyCeleration) && !isNaN(weeklyCeleration)) {
         const celerationLabel = formatCeleration(weeklyCeleration);
 
-        // Position label at the end of the celeration line
-        const labelX = (endX / xMax) * chartWidth;
+        // Position label at the end of the celeration line (within visible area)
+        const labelX = dayToX(endX);
         const labelY = valueToY(endY, chartHeight);
 
         // Draw label background
@@ -905,6 +1047,9 @@ function formatCeleration(value) {
 
 // ===== Mouse Interaction =====
 function handleMouseMove(e) {
+    // Don't show tooltips while dragging
+    if (state.isDragging) return;
+
     const rect = state.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left - CONFIG.margin.left;
     const y = e.clientY - rect.top - CONFIG.margin.top;
@@ -912,6 +1057,7 @@ function handleMouseMove(e) {
     const chartWidth = state.canvas.clientWidth - CONFIG.margin.left - CONFIG.margin.right;
     const chartHeight = state.canvas.clientHeight - CONFIG.margin.top - CONFIG.margin.bottom;
     const xMax = state.zoom;
+    const panOffset = state.panOffset;
 
     // Check if within chart area
     if (x < 0 || x > chartWidth || y < 0 || y > chartHeight) {
@@ -935,9 +1081,10 @@ function handleMouseMove(e) {
                 if (point.value <= 0) return;
 
                 const normalizedDay = point.day - minDay;
-                if (normalizedDay > xMax) return; // Skip points outside zoom range
+                // Check if point is within visible pan range
+                if (normalizedDay < panOffset || normalizedDay > panOffset + xMax) return;
 
-                const px = (normalizedDay / xMax) * chartWidth;
+                const px = ((normalizedDay - panOffset) / xMax) * chartWidth;
                 const py = valueToY(point.value, chartHeight);
 
                 const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);

@@ -393,6 +393,49 @@ body {
     color: var(--bg-primary);
 }
 
+/* Pan Controls */
+.pan-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background: var(--bg-tertiary);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+}
+
+.pan-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pan-btn:hover:not(:disabled) {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.pan-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pan-info {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+    min-width: 100px;
+    text-align: center;
+}
+
 .chart-legend {
     display: flex;
     gap: var(--spacing-md);
