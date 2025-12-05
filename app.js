@@ -17,8 +17,27 @@ const CONFIG = {
     margin: { top: 60, right: 80, bottom: 60, left: 80 },
 
     // Grid lines for log scale (count per minute values)
-    logGridLines: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100, 500, 1000],
+    // Original SCC is 6-cycle semi-log paper with lines at 1-9 within each decade
+    logGridLines: [
+        // Decade 0.001
+        0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009,
+        // Decade 0.01
+        0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09,
+        // Decade 0.1
+        0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+        // Decade 1
+        1, 2, 3, 4, 5, 6, 7, 8, 9,
+        // Decade 10
+        10, 20, 30, 40, 50, 60, 70, 80, 90,
+        // Decade 100
+        100, 200, 300, 400, 500, 600, 700, 800, 900,
+        // Top
+        1000
+    ],
+    // Major lines are at powers of 10 (decade markers)
     majorLogLines: [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+    // Mid-decade lines for labels
+    midLogLines: [0.005, 0.05, 0.5, 5, 50, 500],
 
     // Week markers
     weekDays: 7,
@@ -71,7 +90,7 @@ const state = {
         showRecordFloor: false,
         connectPoints: true
     },
-    zoom: 7, // Current zoom level in days (start with 1 week for better data visibility)
+    zoom: 140, // Current zoom level in days (Full view by default)
     hoveredPoint: null,
     canvas: null,
     ctx: null
@@ -501,15 +520,25 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
         }
     }
 
-    // Horizontal grid lines (logarithmic)
+    // Horizontal grid lines (logarithmic) - standard 6-cycle semi-log paper
     CONFIG.logGridLines.forEach(value => {
         const y = valueToY(value, height);
         const isMajor = CONFIG.majorLogLines.includes(value);
+        const isMid = CONFIG.midLogLines.includes(value);
 
-        ctx.strokeStyle = isMajor ?
-            'rgba(6, 182, 212, 0.3)' :
-            'rgba(6, 182, 212, 0.1)';
-        ctx.lineWidth = isMajor ? 1 : 0.5;
+        if (isMajor) {
+            // Decade lines (1, 10, 100, etc.) - darkest
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.5)';
+            ctx.lineWidth = 1.5;
+        } else if (isMid) {
+            // Mid-decade lines (5, 50, 500, etc.) - medium
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.25)';
+            ctx.lineWidth = 1;
+        } else {
+            // Other intermediate lines (2,3,4,6,7,8,9) - lightest
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+            ctx.lineWidth = 0.5;
+        }
 
         ctx.beginPath();
         ctx.moveTo(0, y);
@@ -608,7 +637,7 @@ function drawDataSeries(ctx, student, metric, chartWidth, chartHeight, xMax) {
     if (state.displayOptions.showCelerationLines && visiblePoints.length >= 2) {
         const validPoints = visiblePoints.filter(p => p.value > 0);
         if (validPoints.length >= 2) {
-            drawCelerationLine(ctx, validPoints, color, chartWidth, chartHeight, xMax);
+            drawCelerationLine(ctx, validPoints, color, chartWidth, chartHeight, xMax, metric);
         }
     }
 
@@ -716,7 +745,7 @@ function drawQuestionMark(ctx, x, y, color) {
     ctx.fillText('?', x, y);
 }
 
-function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax) {
+function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, metric) {
     // Calculate celeration using log-linear regression
     const logPoints = points.map(p => ({
         x: p.normalizedDay,
@@ -731,6 +760,9 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax) {
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
+
+    // Calculate weekly celeration (multiply per week)
+    const weeklyCeleration = Math.pow(10, slope * 7);
 
     // Draw the celeration line
     ctx.strokeStyle = color;
@@ -756,6 +788,52 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax) {
 
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
+
+    // Draw celeration label on the chart
+    if (isFinite(weeklyCeleration) && !isNaN(weeklyCeleration)) {
+        const celerationLabel = formatCeleration(weeklyCeleration);
+
+        // Position label at the end of the celeration line
+        const labelX = (endX / xMax) * chartWidth;
+        const labelY = valueToY(endY, chartHeight);
+
+        // Draw label background
+        ctx.font = 'bold 11px system-ui';
+        const textWidth = ctx.measureText(celerationLabel).width;
+        const padding = 4;
+
+        ctx.fillStyle = 'rgba(10, 22, 40, 0.85)';
+        ctx.fillRect(
+            labelX + 5,
+            labelY - 8,
+            textWidth + padding * 2,
+            16
+        );
+
+        // Draw label border
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(
+            labelX + 5,
+            labelY - 8,
+            textWidth + padding * 2,
+            16
+        );
+
+        // Draw label text
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(celerationLabel, labelX + 5 + padding, labelY);
+
+        // Draw x2 target indicator for correct metrics (green)
+        if (metric === 'correctPerMinute') {
+            const targetLabel = '(goal: x2.0)';
+            ctx.font = '9px system-ui';
+            ctx.fillStyle = 'rgba(34, 197, 94, 0.7)';
+            ctx.fillText(targetLabel, labelX + 5 + padding, labelY + 12);
+        }
+    }
 }
 
 // ===== Coordinate Transformations =====
