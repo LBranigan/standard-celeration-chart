@@ -227,7 +227,8 @@ body {
     border-bottom: var(--border-width) solid var(--grid-major);
 }
 
-.control-section h3 {
+/* ===== Collapsible Section Headers ===== */
+.section-header {
     font-family: var(--font-mono);
     font-size: 0.6875rem;
     font-weight: 600;
@@ -237,16 +238,61 @@ body {
     margin-bottom: var(--spacing-md);
     padding-bottom: var(--spacing-sm);
     border-bottom: 1px solid var(--grid-accent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+}
 
-    /* Decorative dash */
+.section-header:hover {
+    color: var(--burgundy-light);
+}
+
+.section-title {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
 }
 
-.control-section h3::before {
+.section-title::before {
     content: '—';
     color: var(--brass);
+}
+
+.collapse-icon {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    transition: transform 0.2s ease;
+}
+
+.collapse-icon::before {
+    content: '—';
+}
+
+.control-section.collapsed .collapse-icon::before {
+    content: '+';
+}
+
+.control-section.collapsed .section-header {
+    margin-bottom: 0;
+    border-bottom-color: transparent;
+}
+
+/* Section content collapse animation */
+.section-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.control-section.collapsed .section-content {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 /* ===== Student List ===== */

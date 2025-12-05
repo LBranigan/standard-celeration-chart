@@ -123,10 +123,39 @@ window.CONFIG = CONFIG;
 document.addEventListener('DOMContentLoaded', () => {
     initCanvas();
     initEventListeners();
+    initCollapsibleSections();
     drawChart();
     updatePanInfo();
     updatePanButtons();
 });
+
+// ===== Collapsible Sections =====
+function initCollapsibleSections() {
+    const sectionHeaders = document.querySelectorAll('.section-header');
+
+    // Load saved collapse state from localStorage
+    const savedState = JSON.parse(localStorage.getItem('scc-collapsed-sections') || '{}');
+
+    sectionHeaders.forEach(header => {
+        const section = header.dataset.section;
+        const controlSection = header.closest('.control-section');
+
+        // Apply saved state
+        if (savedState[section]) {
+            controlSection.classList.add('collapsed');
+        }
+
+        // Add click handler
+        header.addEventListener('click', () => {
+            controlSection.classList.toggle('collapsed');
+
+            // Save state to localStorage
+            const currentState = JSON.parse(localStorage.getItem('scc-collapsed-sections') || '{}');
+            currentState[section] = controlSection.classList.contains('collapsed');
+            localStorage.setItem('scc-collapsed-sections', JSON.stringify(currentState));
+        });
+    });
+}
 
 function initCanvas() {
     state.canvas = document.getElementById('sccChart');
@@ -214,11 +243,6 @@ function initEventListeners() {
 
     document.getElementById('showDataPoints').addEventListener('change', (e) => {
         state.displayOptions.showDataPoints = e.target.checked;
-        drawChart();
-    });
-
-    document.getElementById('showRecordFloor').addEventListener('change', (e) => {
-        state.displayOptions.showRecordFloor = e.target.checked;
         drawChart();
     });
 
