@@ -50,25 +50,38 @@ const CONFIG = {
         140: { label: 'Full', days: 140, weekInterval: 4, dayInterval: 14 }
     },
 
-    // Colors for multiple students
+    // Vintage Scientific Instrument color palette
+    colors: {
+        paperCream: '#f7f3eb',
+        paperAged: '#efe9dd',
+        inkNavy: '#1a2744',
+        inkLight: '#2d3d5a',
+        burgundy: '#8b2942',
+        brass: '#c4a35a',
+        gridMajor: 'rgba(26, 39, 68, 0.35)',
+        gridMinor: 'rgba(26, 39, 68, 0.12)',
+        gridAccent: 'rgba(139, 41, 66, 0.2)'
+    },
+
+    // Colors for multiple students (vintage-appropriate)
     studentColors: [
-        '#06b6d4', // cyan
-        '#f59e0b', // amber
-        '#a855f7', // purple
-        '#ec4899', // pink
-        '#10b981', // emerald
-        '#6366f1', // indigo
-        '#f43f5e', // rose
-        '#84cc16', // lime
+        '#2d6a4f', // forest green
+        '#b07d3d', // bronze
+        '#4a6fa5', // slate blue
+        '#7b5ea7', // purple
+        '#9d4444', // brick red
+        '#3d7a7a', // teal
+        '#8b6914', // olive gold
+        '#6b4c7a', // dusty violet
     ],
 
-    // Metric colors
+    // Metric colors - sepia-tinted for vintage feel
     metricColors: {
-        correctPerMinute: '#22c55e',
-        errorsPerMinute: '#ef4444',
-        wpm: '#3b82f6',
-        accuracy: '#a855f7',
-        prosody: '#f59e0b'
+        correctPerMinute: '#2d6a4f',
+        errorsPerMinute: '#9d4444',
+        wpm: '#4a6fa5',
+        accuracy: '#7b5ea7',
+        prosody: '#b07d3d'
     },
 
     // Data point symbols
@@ -586,8 +599,8 @@ function drawChart() {
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
-    // Draw background
-    ctx.fillStyle = '#0a1628';
+    // Draw background - vintage paper cream
+    ctx.fillStyle = CONFIG.colors.paperCream;
     ctx.fillRect(0, 0, width, height);
 
     // Draw chart area
@@ -619,8 +632,8 @@ function drawChart() {
 function drawGrid(ctx, width, height, xMax, zoomConfig) {
     const panOffset = state.panOffset;
 
-    // Vertical grid lines (calendar days)
-    ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+    // Vertical grid lines (calendar days) - navy ink
+    ctx.strokeStyle = CONFIG.colors.gridMinor;
     ctx.lineWidth = 1;
 
     const dayInterval = zoomConfig.dayInterval;
@@ -633,8 +646,8 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
     }
 
     // Week number labels at top (adjusted for pan offset)
-    ctx.fillStyle = 'rgba(6, 182, 212, 0.5)';
-    ctx.font = '10px system-ui';
+    ctx.fillStyle = CONFIG.colors.inkLight;
+    ctx.font = "500 10px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
@@ -656,15 +669,15 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 
         if (isMajor) {
             // Decade lines (1, 10, 100, etc.) - darkest
-            ctx.strokeStyle = 'rgba(6, 182, 212, 0.5)';
+            ctx.strokeStyle = CONFIG.colors.gridMajor;
             ctx.lineWidth = 1.5;
         } else if (isMid) {
             // Mid-decade lines (5, 50, 500, etc.) - medium
-            ctx.strokeStyle = 'rgba(6, 182, 212, 0.25)';
+            ctx.strokeStyle = CONFIG.colors.gridAccent;
             ctx.lineWidth = 1;
         } else {
             // Other intermediate lines (2,3,4,6,7,8,9) - lightest
-            ctx.strokeStyle = 'rgba(6, 182, 212, 0.1)';
+            ctx.strokeStyle = CONFIG.colors.gridMinor;
             ctx.lineWidth = 0.5;
         }
 
@@ -677,8 +690,8 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 
 function drawAxes(ctx, width, height, xMax, zoomConfig) {
     // Y-axis labels
-    ctx.fillStyle = '#06b6d4';
-    ctx.font = '11px system-ui';
+    ctx.fillStyle = CONFIG.colors.inkNavy;
+    ctx.font = "500 11px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
@@ -704,8 +717,8 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 function drawAxisLabels(ctx, width, height, margin) {
     // Y-axis label (rotated)
     ctx.save();
-    ctx.fillStyle = '#06b6d4';
-    ctx.font = 'bold 12px system-ui';
+    ctx.fillStyle = CONFIG.colors.burgundy;
+    ctx.font = "600 11px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'center';
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -713,8 +726,8 @@ function drawAxisLabels(ctx, width, height, margin) {
     ctx.restore();
 
     // Week label at top
-    ctx.fillStyle = '#06b6d4';
-    ctx.font = 'bold 10px system-ui';
+    ctx.fillStyle = CONFIG.colors.burgundy;
+    ctx.font = "600 10px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 20);
 }
@@ -940,11 +953,11 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
         const labelY = valueToY(endY, chartHeight);
 
         // Draw label background
-        ctx.font = 'bold 11px system-ui';
+        ctx.font = "600 11px 'IBM Plex Mono', monospace";
         const textWidth = ctx.measureText(celerationLabel).width;
         const padding = 4;
 
-        ctx.fillStyle = 'rgba(10, 22, 40, 0.85)';
+        ctx.fillStyle = CONFIG.colors.inkNavy;
         ctx.fillRect(
             labelX + 5,
             labelY - 8,
@@ -952,9 +965,9 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
             16
         );
 
-        // Draw label border
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
+        // Draw label border (brass accent)
+        ctx.strokeStyle = CONFIG.colors.brass;
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(
             labelX + 5,
             labelY - 8,
@@ -963,16 +976,16 @@ function drawCelerationLine(ctx, points, color, chartWidth, chartHeight, xMax, m
         );
 
         // Draw label text
-        ctx.fillStyle = color;
+        ctx.fillStyle = CONFIG.colors.paperCream;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillText(celerationLabel, labelX + 5 + padding, labelY);
 
-        // Draw x2 target indicator for correct metrics (green)
+        // Draw x2 target indicator for correct metrics
         if (metric === 'correctPerMinute') {
             const targetLabel = '(goal: x2.0)';
-            ctx.font = '9px system-ui';
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.7)';
+            ctx.font = "500 9px 'IBM Plex Mono', monospace";
+            ctx.fillStyle = CONFIG.colors.brass;
             ctx.fillText(targetLabel, labelX + 5 + padding, labelY + 12);
         }
     }
