@@ -129,8 +129,14 @@ const SUBJECT_COLORS = {
     'Reading': ['#2d6a4f', '#40916c', '#52b788', '#74c69d'],
     'Math': ['#4a6fa5', '#5c7cba', '#6e8acf', '#8098e4'],
     'Writing': ['#7b5ea7', '#8d70b9', '#9f82cb', '#b194dd'],
-    'Science': ['#b07d3d', '#c28f4f', '#d4a161', '#e6b373'],
     'default': ['#9d4444', '#af5656', '#c16868', '#d37a7a']
+};
+
+// Full assessment tree structure
+const ASSESSMENT_TREE = {
+    'Reading': ['Decoding', 'Oral Reading Fluency', 'Phonics'],
+    'Math': ['Calculation', 'Counting', 'Math Concepts', 'Math Facts', 'Math Vocabulary'],
+    'Writing': ['Descriptive', 'Explanatory', 'Handwriting', 'Keyboarding', 'Narrative', 'Persuasive', 'Transcription']
 };
 
 // ===== Make functions globally accessible =====
@@ -143,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCanvas();
     initEventListeners();
     initCollapsibleSections();
+    updateSubjectTree(); // Show empty tree structure on load
     drawChart();
     updatePanInfo();
     updatePanButtons();
@@ -510,9 +517,21 @@ function processStudentData(data) {
         return;
     }
 
-    // Extract subject information (default to Reading > Oral Reading Fluency)
-    const category = data.subject?.category || 'Reading';
-    const subcategory = data.subject?.subcategory || 'Oral Reading Fluency';
+    // Extract category from data (e.g., "Oral Reading Fluency")
+    // This determines where in the tree it appears
+    const assessmentCategory = data.category || data.subject?.subcategory || 'Oral Reading Fluency';
+
+    // Find which subject area this category belongs to
+    let subjectArea = 'Reading'; // default
+    for (const [area, categories] of Object.entries(ASSESSMENT_TREE)) {
+        if (categories.includes(assessmentCategory)) {
+            subjectArea = area;
+            break;
+        }
+    }
+
+    const category = subjectArea;
+    const subcategory = assessmentCategory;
 
     const studentId = data.student.id || `student-${Date.now()}`;
     const dataSetId = `${studentId}-${category}-${subcategory}`.replace(/\s+/g, '-').toLowerCase();
@@ -590,45 +609,51 @@ function processStudentData(data) {
 // ===== Subject Tree UI =====
 function updateSubjectTree() {
     const container = document.getElementById('subjectTree');
-
-    if (Object.keys(state.subjects).length === 0) {
-        container.innerHTML = '<p class="empty-state">No data loaded</p>';
-        return;
-    }
-
     let html = '';
 
-    for (const category of Object.keys(state.subjects).sort()) {
-        const subcategories = state.subjects[category];
-        const categoryId = category.replace(/\s+/g, '-').toLowerCase();
+    // Show full assessment tree structure
+    for (const [subjectArea, categories] of Object.entries(ASSESSMENT_TREE)) {
+        const areaId = subjectArea.replace(/\s+/g, '-').toLowerCase();
+        const hasData = state.subjects[subjectArea] && Object.keys(state.subjects[subjectArea]).length > 0;
 
         html += `
-            <div class="subject-category expanded" data-category="${category}">
-                <div class="subject-category-header" onclick="toggleSubjectCategory('${categoryId}')">
+            <div class="subject-category ${hasData ? 'expanded has-data' : ''}" data-category="${subjectArea}">
+                <div class="subject-category-header" onclick="toggleSubjectCategory('${subjectArea}')">
                     <span class="category-icon">▶</span>
-                    <span>${escapeHtml(category)}</span>
+                    <span class="${hasData ? '' : 'muted'}">${escapeHtml(subjectArea)}</span>
                 </div>
                 <div class="subject-subcategories">
         `;
 
-        for (const subcategory of Object.keys(subcategories).sort()) {
-            const dataSetIds = subcategories[subcategory];
+        for (const category of categories) {
+            const categoryDataSets = state.subjects[subjectArea]?.[category] || [];
+            const hasDataForCategory = categoryDataSets.length > 0;
 
-            for (const dataSetId of dataSetIds) {
-                const dataSet = state.dataSets[dataSetId];
-                if (!dataSet) continue;
+            if (hasDataForCategory) {
+                // Show each data set for this category
+                for (const dataSetId of categoryDataSets) {
+                    const dataSet = state.dataSets[dataSetId];
+                    if (!dataSet) continue;
 
-                const isActive = state.activeDataSets.includes(dataSetId);
-                const studentName = dataSet.student.name;
-                const assessmentCount = dataSet.assessments.length;
+                    const isActive = state.activeDataSets.includes(dataSetId);
+                    const studentName = dataSet.student.name;
+                    const assessmentCount = dataSet.assessments.length;
 
+                    html += `
+                        <label class="subject-item has-data ${isActive ? 'active' : ''}" data-dataset="${dataSetId}">
+                            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleDataSet('${dataSetId}')">
+                            <span class="subject-color" style="background: ${dataSet.color}"></span>
+                            <span class="subject-label">${escapeHtml(category)}</span>
+                            <span class="subject-count">${studentName} (${assessmentCount})</span>
+                        </label>
+                    `;
+                }
+            } else {
+                // Show empty placeholder for this category
                 html += `
-                    <label class="subject-item ${isActive ? 'active' : ''}" data-dataset="${dataSetId}">
-                        <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleDataSet('${dataSetId}')">
-                        <span class="subject-color" style="background: ${dataSet.color}"></span>
-                        <span class="subject-label">${escapeHtml(subcategory)}</span>
-                        <span class="subject-count">${studentName} (${assessmentCount})</span>
-                    </label>
+                    <div class="subject-item empty">
+                        <span class="subject-label muted">${escapeHtml(category)}</span>
+                    </div>
                 `;
             }
         }

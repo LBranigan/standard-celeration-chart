@@ -420,6 +420,23 @@ body {
     color: var(--text-muted);
 }
 
+.subject-item.empty {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.subject-item.empty:hover {
+    background: transparent;
+}
+
+.muted {
+    opacity: 0.5;
+}
+
+.subject-category:not(.has-data) .subject-category-header {
+    opacity: 0.6;
+}
+
 /* ===== Student List ===== */
 .student-list {
     display: flex;
