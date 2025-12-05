@@ -117,7 +117,20 @@ const state = {
     selectionStartX: 0,
     selectionEndX: 0,
     selectionStartDay: 0,
-    selectionEndDay: 0
+    selectionEndDay: 0,
+    // Subject data organization
+    subjects: {}, // { category: { subcategory: [dataSetIds] } }
+    dataSets: {}, // { dataSetId: { subject, student, assessments, active, color } }
+    activeDataSets: [] // List of active dataSet IDs to display
+};
+
+// Subject color palette
+const SUBJECT_COLORS = {
+    'Reading': ['#2d6a4f', '#40916c', '#52b788', '#74c69d'],
+    'Math': ['#4a6fa5', '#5c7cba', '#6e8acf', '#8098e4'],
+    'Writing': ['#7b5ea7', '#8d70b9', '#9f82cb', '#b194dd'],
+    'Science': ['#b07d3d', '#c28f4f', '#d4a161', '#e6b373'],
+    'default': ['#9d4444', '#af5656', '#c16868', '#d37a7a']
 };
 
 // ===== Make functions globally accessible =====
@@ -497,12 +510,53 @@ function processStudentData(data) {
         return;
     }
 
-    const studentId = data.student.id || `student-${Date.now()}`;
+    // Extract subject information (default to Reading > Oral Reading Fluency)
+    const category = data.subject?.category || 'Reading';
+    const subcategory = data.subject?.subcategory || 'Oral Reading Fluency';
 
-    // Check if student already exists
+    const studentId = data.student.id || `student-${Date.now()}`;
+    const dataSetId = `${studentId}-${category}-${subcategory}`.replace(/\s+/g, '-').toLowerCase();
+
+    // Initialize subject hierarchy if needed
+    if (!state.subjects[category]) {
+        state.subjects[category] = {};
+    }
+    if (!state.subjects[category][subcategory]) {
+        state.subjects[category][subcategory] = [];
+    }
+
+    // Get color for this data set
+    const colorPalette = SUBJECT_COLORS[category] || SUBJECT_COLORS['default'];
+    const colorIndex = state.subjects[category][subcategory].length % colorPalette.length;
+    const color = colorPalette[colorIndex];
+
+    // Check if data set already exists
+    if (state.dataSets[dataSetId]) {
+        // Update existing data set
+        state.dataSets[dataSetId].assessments = data.assessments;
+        state.dataSets[dataSetId].summary = data.summary;
+    } else {
+        // Create new data set
+        state.dataSets[dataSetId] = {
+            id: dataSetId,
+            subject: { category, subcategory },
+            student: data.student,
+            assessments: data.assessments,
+            summary: data.summary,
+            color: color,
+            active: true
+        };
+
+        // Add to subject hierarchy
+        state.subjects[category][subcategory].push(dataSetId);
+
+        // Add to active data sets
+        state.activeDataSets.push(dataSetId);
+    }
+
+    // Also maintain legacy students array for compatibility
     const existingIndex = state.students.findIndex(s => s.id === studentId);
     if (existingIndex !== -1) {
-        // Update existing student
         state.students[existingIndex] = {
             ...state.students[existingIndex],
             ...data.student,
@@ -510,22 +564,20 @@ function processStudentData(data) {
             summary: data.summary
         };
     } else {
-        // Add new student with color
-        const colorIndex = state.students.length % CONFIG.studentColors.length;
+        const legacyColorIndex = state.students.length % CONFIG.studentColors.length;
         state.students.push({
             ...data.student,
             assessments: data.assessments,
             summary: data.summary,
-            color: CONFIG.studentColors[colorIndex]
+            color: CONFIG.studentColors[legacyColorIndex]
         });
-
-        // Automatically make new student active
         state.activeStudents.push(studentId);
     }
 
-    // Update maxDataDay based on all loaded student data
+    // Update maxDataDay based on all loaded data
     updateMaxDataDay();
 
+    updateSubjectTree();
     updateStudentList();
     drawChart();
     updateStats();
@@ -534,6 +586,93 @@ function processStudentData(data) {
     updatePanInfo();
     updatePanButtons();
 }
+
+// ===== Subject Tree UI =====
+function updateSubjectTree() {
+    const container = document.getElementById('subjectTree');
+
+    if (Object.keys(state.subjects).length === 0) {
+        container.innerHTML = '<p class="empty-state">No data loaded</p>';
+        return;
+    }
+
+    let html = '';
+
+    for (const category of Object.keys(state.subjects).sort()) {
+        const subcategories = state.subjects[category];
+        const categoryId = category.replace(/\s+/g, '-').toLowerCase();
+
+        html += `
+            <div class="subject-category expanded" data-category="${category}">
+                <div class="subject-category-header" onclick="toggleSubjectCategory('${categoryId}')">
+                    <span class="category-icon">▶</span>
+                    <span>${escapeHtml(category)}</span>
+                </div>
+                <div class="subject-subcategories">
+        `;
+
+        for (const subcategory of Object.keys(subcategories).sort()) {
+            const dataSetIds = subcategories[subcategory];
+
+            for (const dataSetId of dataSetIds) {
+                const dataSet = state.dataSets[dataSetId];
+                if (!dataSet) continue;
+
+                const isActive = state.activeDataSets.includes(dataSetId);
+                const studentName = dataSet.student.name;
+                const assessmentCount = dataSet.assessments.length;
+
+                html += `
+                    <label class="subject-item ${isActive ? 'active' : ''}" data-dataset="${dataSetId}">
+                        <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleDataSet('${dataSetId}')">
+                        <span class="subject-color" style="background: ${dataSet.color}"></span>
+                        <span class="subject-label">${escapeHtml(subcategory)}</span>
+                        <span class="subject-count">${studentName} (${assessmentCount})</span>
+                    </label>
+                `;
+            }
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+function toggleSubjectCategory(categoryId) {
+    const category = document.querySelector(`[data-category="${categoryId}"]`) ||
+                     document.querySelector(`.subject-category[data-category]`);
+    if (category) {
+        category.classList.toggle('expanded');
+    }
+}
+
+function toggleDataSet(dataSetId) {
+    const index = state.activeDataSets.indexOf(dataSetId);
+
+    if (index !== -1) {
+        state.activeDataSets.splice(index, 1);
+        if (state.dataSets[dataSetId]) {
+            state.dataSets[dataSetId].active = false;
+        }
+    } else {
+        state.activeDataSets.push(dataSetId);
+        if (state.dataSets[dataSetId]) {
+            state.dataSets[dataSetId].active = true;
+        }
+    }
+
+    updateSubjectTree();
+    drawChart();
+    updateLegend();
+}
+
+// Make functions globally accessible
+window.toggleSubjectCategory = toggleSubjectCategory;
+window.toggleDataSet = toggleDataSet;
 
 function updateMaxDataDay() {
     let maxDay = 140; // Default to standard SCC range

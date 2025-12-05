@@ -6,6 +6,10 @@
     "source": "Word Analyzer V2",
     "buildVersion": "2025-12-05 13:31"
   },
+  "subject": {
+    "category": "Reading",
+    "subcategory": "Oral Reading Fluency"
+  },
   "student": {
     "name": "McTesty",
     "grade": "3",
