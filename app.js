@@ -1007,7 +1007,7 @@ function drawAxisLabels(ctx, width, height, margin) {
     // Y-axis label (rotated) - matching original SCC
     ctx.save();
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "400 9px Inter, sans-serif";
+    ctx.font = "400 13px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.translate(18, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -1016,7 +1016,7 @@ function drawAxisLabels(ctx, width, height, margin) {
 
     // Week label at top - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "400 9px Inter, sans-serif";
+    ctx.font = "400 13px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 18);
 }
