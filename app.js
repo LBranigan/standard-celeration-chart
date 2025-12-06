@@ -306,7 +306,7 @@ function initEventListeners() {
         }
     });
 
-    // Drag to pan on chart (when zoomed in) or select range (when full view)
+    // Drag to pan on chart (only when zoomed in, not in full view)
     state.canvas.addEventListener('mousedown', (e) => {
         const rect = state.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -314,16 +314,8 @@ function initEventListeners() {
         // Check if click is within chart area
         if (x < CONFIG.margin.left || x > state.canvas.clientWidth - CONFIG.margin.right) return;
 
-        if (state.zoom === 140) {
-            // Full view: start range selection
-            state.isSelecting = true;
-            state.selectionStartX = x;
-            state.selectionEndX = x;
-            state.selectionStartDay = xToDay(x);
-            state.selectionEndDay = state.selectionStartDay;
-            state.canvas.style.cursor = 'col-resize';
-        } else {
-            // Zoomed in: drag to pan
+        // Only allow drag-to-pan when zoomed in (not full view)
+        if (state.zoom < 140) {
             state.isDragging = true;
             state.dragStartX = e.clientX;
             state.dragStartOffset = state.panOffset;
@@ -332,16 +324,7 @@ function initEventListeners() {
     });
 
     document.addEventListener('mousemove', (e) => {
-        const rect = state.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-
-        if (state.isSelecting) {
-            // Update selection range
-            state.selectionEndX = Math.max(CONFIG.margin.left, Math.min(x, state.canvas.clientWidth - CONFIG.margin.right));
-            state.selectionEndDay = xToDay(state.selectionEndX);
-            drawChart();
-            drawSelectionOverlay();
-        } else if (state.isDragging) {
+        if (state.isDragging) {
             const chartWidth = state.canvas.clientWidth - CONFIG.margin.left - CONFIG.margin.right;
             const pixelsPerDay = chartWidth / state.zoom;
             const dragDelta = state.dragStartX - e.clientX;
@@ -357,32 +340,7 @@ function initEventListeners() {
     });
 
     document.addEventListener('mouseup', () => {
-        if (state.isSelecting) {
-            state.isSelecting = false;
-            state.canvas.style.cursor = 'default';
-
-            // Calculate selected range
-            const startDay = Math.min(state.selectionStartDay, state.selectionEndDay);
-            const endDay = Math.max(state.selectionStartDay, state.selectionEndDay);
-            const rangeDays = endDay - startDay;
-
-            // Only zoom if range is at least 3 days
-            if (rangeDays >= 3) {
-                state.panOffset = Math.floor(startDay);
-                state.zoom = Math.ceil(rangeDays);
-
-                // Update zoom button states
-                document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
-
-                drawChart();
-                updatePanInfo();
-                updatePanButtons();
-                updateChartSubtitle();
-            } else {
-                // Clear selection and redraw
-                drawChart();
-            }
-        } else if (state.isDragging) {
+        if (state.isDragging) {
             state.isDragging = false;
             state.canvas.style.cursor = 'default';
         }
@@ -954,7 +912,7 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 
     // Week number labels at top (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "11px Arial, Helvetica, sans-serif";
+    ctx.font = "12px Verdana, Geneva, sans-serif";
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
@@ -1012,7 +970,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
     };
 
     // All Y-axis labels use same font (matching original SCC)
-    ctx.font = "12px Arial, Helvetica, sans-serif";
+    ctx.font = "13px Verdana, Geneva, sans-serif";
 
     // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
     CONFIG.majorLogLines.forEach(value => {
@@ -1028,7 +986,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 
     // X-axis labels (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "12px Arial, Helvetica, sans-serif";
+    ctx.font = "13px Verdana, Geneva, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -1045,7 +1003,7 @@ function drawAxisLabels(ctx, width, height, margin) {
     // Y-axis label (rotated) - matching original SCC
     ctx.save();
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "bold 11px Arial, Helvetica, sans-serif";
+    ctx.font = "bold 12px Verdana, Geneva, sans-serif";
     ctx.textAlign = 'center';
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -1054,7 +1012,7 @@ function drawAxisLabels(ctx, width, height, margin) {
 
     // Week label at top - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "bold 11px Arial, Helvetica, sans-serif";
+    ctx.font = "bold 12px Verdana, Geneva, sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 20);
 }
