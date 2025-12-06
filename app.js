@@ -158,6 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
     drawChart();
     updatePanInfo();
     updatePanButtons();
+
+    // Redraw chart once fonts are loaded (for canvas font rendering)
+    document.fonts.ready.then(() => {
+        drawChart();
+    });
 });
 
 // ===== Collapsible Sections =====
@@ -912,7 +917,7 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 
     // Week number labels at top (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "12px Verdana, Geneva, sans-serif";
+    ctx.font = "300 12px Inter, sans-serif";
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
@@ -970,7 +975,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
     };
 
     // All Y-axis labels use same font (matching original SCC)
-    ctx.font = "13px Verdana, Geneva, sans-serif";
+    ctx.font = "300 13px Inter, sans-serif";
 
     // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
     CONFIG.majorLogLines.forEach(value => {
@@ -986,7 +991,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 
     // X-axis labels (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "13px Verdana, Geneva, sans-serif";
+    ctx.font = "300 13px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -1003,7 +1008,7 @@ function drawAxisLabels(ctx, width, height, margin) {
     // Y-axis label (rotated) - matching original SCC
     ctx.save();
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "bold 12px Verdana, Geneva, sans-serif";
+    ctx.font = "400 12px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -1012,7 +1017,7 @@ function drawAxisLabels(ctx, width, height, margin) {
 
     // Week label at top - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "bold 12px Verdana, Geneva, sans-serif";
+    ctx.font = "400 12px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 20);
 }
