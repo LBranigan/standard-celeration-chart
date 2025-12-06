@@ -991,32 +991,33 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 }
 
 function drawAxes(ctx, width, height, xMax, zoomConfig) {
-    // Y-axis labels - major lines (powers of 10)
+    // Y-axis labels - using sans-serif font similar to original SCC
     ctx.fillStyle = CONFIG.colors.inkNavy;
-    ctx.font = "500 11px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
+    // Helper function to format Y-axis labels like original SCC
+    const formatYLabel = (value) => {
+        if (value >= 1) {
+            return value.toString();
+        } else {
+            // Format as .5, .1, .05, .01, .005, .001 (without leading zero)
+            return '.' + value.toString().split('.')[1];
+        }
+    };
+
+    // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
+    ctx.font = "600 12px Arial, Helvetica, sans-serif";
     CONFIG.majorLogLines.forEach(value => {
         const y = valueToY(value, height);
-        let label = value >= 1 ? value.toString() : value.toString();
-        ctx.fillText(label, -10, y);
+        ctx.fillText(formatYLabel(value), -8, y);
     });
 
-    // Y-axis labels - mid-decade lines (5's: 500, 50, 5, .5, .05, .005)
-    ctx.fillStyle = CONFIG.colors.inkNavy;
-    ctx.font = "500 10px 'IBM Plex Mono', monospace";
-
+    // Mid-decade lines (5's): 500, 50, 5, .5, .05, .005
+    ctx.font = "500 11px Arial, Helvetica, sans-serif";
     CONFIG.midLogLines.forEach(value => {
         const y = valueToY(value, height);
-        let label;
-        if (value >= 1) {
-            label = value.toString();
-        } else {
-            // Format as .5, .05, .005 (without leading zero)
-            label = '.' + value.toString().split('.')[1];
-        }
-        ctx.fillText(label, -10, y);
+        ctx.fillText(formatYLabel(value), -8, y);
     });
 
     // X-axis labels (adjusted for pan offset)
