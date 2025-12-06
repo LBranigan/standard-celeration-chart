@@ -974,16 +974,15 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
         }
     };
 
-    // All Y-axis labels use same font (matching original SCC)
-    ctx.font = "300 10px Inter, sans-serif";
-
-    // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
+    // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001 - larger font
+    ctx.font = "300 13px Inter, sans-serif";
     CONFIG.majorLogLines.forEach(value => {
         const y = valueToY(value, height);
         ctx.fillText(formatYLabel(value), -8, y);
     });
 
-    // Mid-decade lines (5's): 500, 50, 5, .5, .05, .005
+    // Mid-decade lines (5's): 500, 50, 5, .5, .05, .005 - smaller font
+    ctx.font = "300 10px Inter, sans-serif";
     CONFIG.midLogLines.forEach(value => {
         const y = valueToY(value, height);
         ctx.fillText(formatYLabel(value), -8, y);
@@ -991,7 +990,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 
     // X-axis labels (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "300 10px Inter, sans-serif";
+    ctx.font = "300 13px Inter, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
