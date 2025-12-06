@@ -475,8 +475,15 @@ body {
     height: 14px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 2px solid var(--paper-cream);
-    box-shadow: 0 0 0 1px var(--ink-light);
+    border: 2px solid currentColor;
+    background: transparent;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.student-item.active .student-color {
+    background: currentColor;
+    border-color: var(--paper-cream);
+    box-shadow: 0 0 0 1px currentColor;
 }
 
 .student-item .student-name {
@@ -484,13 +491,13 @@ body {
     font-size: 0.9375rem;
     font-weight: 500;
     flex: 1;
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
 }
 
 .student-item .student-count {
     font-family: var(--font-mono);
     font-size: 0.6875rem;
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -609,6 +616,55 @@ body {
     color: var(--text-muted);
     text-align: center;
     padding: var(--spacing-xl);
+}
+
+/* ===== Patterns Panel ===== */
+.patterns-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+
+.pattern-toggles {
+    margin-bottom: var(--spacing-sm);
+}
+
+.pattern-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.pattern-alert.warning {
+    background: rgba(180, 125, 61, 0.15);
+    border-left: 3px solid var(--data-prosody);
+    color: var(--text-primary);
+}
+
+.pattern-alert.critical {
+    background: rgba(157, 68, 68, 0.15);
+    border-left: 3px solid var(--data-errors);
+    color: var(--text-primary);
+}
+
+.pattern-alert .pattern-icon {
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.pattern-alert .pattern-text {
+    flex: 1;
+}
+
+.pattern-alert .pattern-days {
+    font-weight: 600;
+    color: var(--burgundy);
 }
 
 /* ===== Chart Container ===== */

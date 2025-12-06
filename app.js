@@ -266,6 +266,11 @@ function initEventListeners() {
         drawChart();
     });
 
+    // Pattern detection toggle
+    document.getElementById('showDeclinePatterns')?.addEventListener('change', () => {
+        updatePatternsPanel();
+    });
+
     // Mouse interaction for tooltips
     state.canvas.addEventListener('mousemove', handleMouseMove);
     state.canvas.addEventListener('mouseleave', () => {
@@ -601,6 +606,7 @@ function processStudentData(data) {
     drawChart();
     updateStats();
     updateLegend();
+    updatePatternsPanel();
     updateChartSubtitle();
     updatePanInfo();
     updatePanButtons();
@@ -677,22 +683,36 @@ function toggleSubjectCategory(categoryId) {
 
 function toggleDataSet(dataSetId) {
     const index = state.activeDataSets.indexOf(dataSetId);
+    const dataSet = state.dataSets[dataSetId];
 
     if (index !== -1) {
         state.activeDataSets.splice(index, 1);
-        if (state.dataSets[dataSetId]) {
-            state.dataSets[dataSetId].active = false;
+        if (dataSet) {
+            dataSet.active = false;
+            // Also remove from activeStudents
+            const studentId = dataSet.student?.id;
+            if (studentId) {
+                state.activeStudents = state.activeStudents.filter(s => s !== studentId);
+            }
         }
     } else {
         state.activeDataSets.push(dataSetId);
-        if (state.dataSets[dataSetId]) {
-            state.dataSets[dataSetId].active = true;
+        if (dataSet) {
+            dataSet.active = true;
+            // Also add to activeStudents
+            const studentId = dataSet.student?.id;
+            if (studentId && !state.activeStudents.includes(studentId)) {
+                state.activeStudents.push(studentId);
+            }
         }
     }
 
     updateSubjectTree();
+    updateStudentList();
     drawChart();
+    updateStats();
     updateLegend();
+    updatePatternsPanel();
 }
 
 // Make functions globally accessible
@@ -727,8 +747,8 @@ function updateStudentList() {
 
     container.innerHTML = state.students.map((student, index) => `
         <div class="student-item ${state.activeStudents.includes(student.id) ? 'active' : ''}"
-             data-id="${student.id}">
-            <span class="student-color" style="background: ${student.color}"></span>
+             data-id="${student.id}" style="color: ${student.color}">
+            <span class="student-color"></span>
             <span class="student-name">${escapeHtml(student.name)}</span>
             <span class="student-count">${student.assessments.length} assessments</span>
             <button class="remove-btn" data-id="${student.id}" title="Remove">&times;</button>
@@ -751,6 +771,7 @@ function updateStudentList() {
             drawChart();
             updateStats();
             updateLegend();
+            updatePatternsPanel();
         });
     });
 
@@ -764,6 +785,7 @@ function updateStudentList() {
             drawChart();
             updateStats();
             updateLegend();
+            updatePatternsPanel();
         });
     });
 }
@@ -1440,3 +1462,129 @@ function escapeHtml(str) {
         "'": '&#39;'
     }[char]));
 }
+
+// ===== Pattern Detection =====
+function detectPatterns() {
+    const patterns = [];
+
+    state.activeStudents.forEach(studentId => {
+        const student = state.students.find(s => s.id === studentId);
+        if (!student || !student.assessments) return;
+
+        // Get correct per minute data sorted by day
+        const correctData = student.assessments
+            .filter(a => a.celeration && a.celeration.correctPerMinute > 0)
+            .map(a => ({
+                day: a.celeration.calendarDay,
+                value: a.celeration.correctPerMinute,
+                date: a.celeration.date
+            }))
+            .sort((a, b) => a.day - b.day);
+
+        // Detect consecutive declines
+        const declinePatterns = detectConsecutiveDeclines(correctData, student.name);
+        patterns.push(...declinePatterns);
+    });
+
+    return patterns;
+}
+
+function detectConsecutiveDeclines(dataPoints, studentName) {
+    const patterns = [];
+    if (dataPoints.length < 2) return patterns;
+
+    let consecutiveDeclines = 0;
+    let declineStartDay = null;
+    let declineEndDay = null;
+
+    for (let i = 1; i < dataPoints.length; i++) {
+        const prevValue = dataPoints[i - 1].value;
+        const currValue = dataPoints[i].value;
+
+        if (currValue < prevValue) {
+            // Decline detected
+            if (consecutiveDeclines === 0) {
+                declineStartDay = dataPoints[i - 1].day;
+            }
+            consecutiveDeclines++;
+            declineEndDay = dataPoints[i].day;
+        } else {
+            // Decline streak ended - record if significant
+            if (consecutiveDeclines >= 2) {
+                patterns.push({
+                    type: 'decline',
+                    severity: consecutiveDeclines >= 3 ? 'critical' : 'warning',
+                    studentName: studentName,
+                    consecutiveDays: consecutiveDeclines,
+                    startDay: declineStartDay,
+                    endDay: declineEndDay,
+                    metric: 'Correct/Min'
+                });
+            }
+            consecutiveDeclines = 0;
+            declineStartDay = null;
+        }
+    }
+
+    // Check if we ended with a decline streak
+    if (consecutiveDeclines >= 2) {
+        patterns.push({
+            type: 'decline',
+            severity: consecutiveDeclines >= 3 ? 'critical' : 'warning',
+            studentName: studentName,
+            consecutiveDays: consecutiveDeclines,
+            startDay: declineStartDay,
+            endDay: declineEndDay,
+            metric: 'Correct/Min'
+        });
+    }
+
+    return patterns;
+}
+
+function updatePatternsPanel() {
+    const panel = document.getElementById('patternsPanel');
+    const showDeclines = document.getElementById('showDeclinePatterns')?.checked ?? true;
+
+    if (!showDeclines || state.activeStudents.length === 0) {
+        panel.innerHTML = '<p class="empty-state">No patterns detected</p>';
+        return;
+    }
+
+    const patterns = detectPatterns();
+
+    if (patterns.length === 0) {
+        panel.innerHTML = '<p class="empty-state">No patterns detected</p>';
+        return;
+    }
+
+    // Sort patterns by severity (critical first) and then by end day (most recent first)
+    patterns.sort((a, b) => {
+        if (a.severity !== b.severity) {
+            return a.severity === 'critical' ? -1 : 1;
+        }
+        return b.endDay - a.endDay;
+    });
+
+    panel.innerHTML = patterns.map(pattern => {
+        const icon = pattern.severity === 'critical' ? '⚠' : '↘';
+        const severityClass = pattern.severity;
+
+        if (pattern.type === 'decline') {
+            return `
+                <div class="pattern-alert ${severityClass}">
+                    <span class="pattern-icon">${icon}</span>
+                    <span class="pattern-text">
+                        <strong>${escapeHtml(pattern.studentName)}</strong>:
+                        ${pattern.consecutiveDays} consecutive declines in ${pattern.metric}
+                        <span class="pattern-days">(Days ${pattern.startDay}-${pattern.endDay})</span>
+                    </span>
+                </div>
+            `;
+        }
+        return '';
+    }).join('');
+}
+
+// Make pattern functions globally accessible
+window.updatePatternsPanel = updatePatternsPanel;
