@@ -991,7 +991,7 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 }
 
 function drawAxes(ctx, width, height, xMax, zoomConfig) {
-    // Y-axis labels
+    // Y-axis labels - major lines (powers of 10)
     ctx.fillStyle = CONFIG.colors.inkNavy;
     ctx.font = "500 11px 'IBM Plex Mono', monospace";
     ctx.textAlign = 'right';
@@ -1000,6 +1000,22 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
     CONFIG.majorLogLines.forEach(value => {
         const y = valueToY(value, height);
         let label = value >= 1 ? value.toString() : value.toString();
+        ctx.fillText(label, -10, y);
+    });
+
+    // Y-axis labels - mid-decade lines (5's: 500, 50, 5, .5, .05, .005)
+    ctx.fillStyle = CONFIG.colors.inkNavy;
+    ctx.font = "500 10px 'IBM Plex Mono', monospace";
+
+    CONFIG.midLogLines.forEach(value => {
+        const y = valueToY(value, height);
+        let label;
+        if (value >= 1) {
+            label = value.toString();
+        } else {
+            // Format as .5, .05, .005 (without leading zero)
+            label = '.' + value.toString().split('.')[1];
+        }
         ctx.fillText(label, -10, y);
     });
 
