@@ -60,7 +60,12 @@ const CONFIG = {
         brass: '#c4a35a',
         gridMajor: 'rgba(26, 39, 68, 0.35)',
         gridMinor: 'rgba(26, 39, 68, 0.12)',
-        gridAccent: 'rgba(139, 41, 66, 0.2)'
+        gridAccent: 'rgba(139, 41, 66, 0.2)',
+        // Original SCC cyan color scheme
+        sccCyan: '#00a0b0',
+        sccGridMajor: 'rgba(0, 160, 176, 0.6)',
+        sccGridMid: 'rgba(0, 160, 176, 0.4)',
+        sccGridMinor: 'rgba(0, 160, 176, 0.25)'
     },
 
     // Colors for multiple students (vintage-appropriate)
@@ -934,8 +939,8 @@ function drawChart() {
 function drawGrid(ctx, width, height, xMax, zoomConfig) {
     const panOffset = state.panOffset;
 
-    // Vertical grid lines (calendar days) - navy ink
-    ctx.strokeStyle = CONFIG.colors.gridMinor;
+    // Vertical grid lines (calendar days) - cyan like original SCC
+    ctx.strokeStyle = CONFIG.colors.sccGridMinor;
     ctx.lineWidth = 1;
 
     const dayInterval = zoomConfig.dayInterval;
@@ -947,9 +952,9 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
         ctx.stroke();
     }
 
-    // Week number labels at top (adjusted for pan offset)
-    ctx.fillStyle = CONFIG.colors.inkLight;
-    ctx.font = "500 10px 'IBM Plex Mono', monospace";
+    // Week number labels at top (adjusted for pan offset) - matching original SCC
+    ctx.fillStyle = CONFIG.colors.sccCyan;
+    ctx.font = "400 11px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
@@ -963,23 +968,23 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
         }
     }
 
-    // Horizontal grid lines (logarithmic) - standard 6-cycle semi-log paper
+    // Horizontal grid lines (logarithmic) - cyan like original SCC
     CONFIG.logGridLines.forEach(value => {
         const y = valueToY(value, height);
         const isMajor = CONFIG.majorLogLines.includes(value);
         const isMid = CONFIG.midLogLines.includes(value);
 
         if (isMajor) {
-            // Decade lines (1, 10, 100, etc.) - darkest
-            ctx.strokeStyle = CONFIG.colors.gridMajor;
+            // Decade lines (1, 10, 100, etc.) - darkest cyan
+            ctx.strokeStyle = CONFIG.colors.sccGridMajor;
             ctx.lineWidth = 1.5;
         } else if (isMid) {
-            // Mid-decade lines (5, 50, 500, etc.) - medium
-            ctx.strokeStyle = CONFIG.colors.gridAccent;
+            // Mid-decade lines (5, 50, 500, etc.) - medium cyan
+            ctx.strokeStyle = CONFIG.colors.sccGridMid;
             ctx.lineWidth = 1;
         } else {
-            // Other intermediate lines (2,3,4,6,7,8,9) - lightest
-            ctx.strokeStyle = CONFIG.colors.gridMinor;
+            // Other intermediate lines (2,3,4,6,7,8,9) - lightest cyan
+            ctx.strokeStyle = CONFIG.colors.sccGridMinor;
             ctx.lineWidth = 0.5;
         }
 
@@ -991,8 +996,8 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 }
 
 function drawAxes(ctx, width, height, xMax, zoomConfig) {
-    // Y-axis labels - using sans-serif font similar to original SCC
-    ctx.fillStyle = CONFIG.colors.inkNavy;
+    // Y-axis labels - matching original SCC chart style
+    ctx.fillStyle = CONFIG.colors.sccCyan;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
@@ -1006,21 +1011,24 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
         }
     };
 
+    // All Y-axis labels use same font (matching original SCC)
+    ctx.font = "400 12px Arial, Helvetica, sans-serif";
+
     // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
-    ctx.font = "600 12px Arial, Helvetica, sans-serif";
     CONFIG.majorLogLines.forEach(value => {
         const y = valueToY(value, height);
         ctx.fillText(formatYLabel(value), -8, y);
     });
 
     // Mid-decade lines (5's): 500, 50, 5, .5, .05, .005
-    ctx.font = "500 11px Arial, Helvetica, sans-serif";
     CONFIG.midLogLines.forEach(value => {
         const y = valueToY(value, height);
         ctx.fillText(formatYLabel(value), -8, y);
     });
 
-    // X-axis labels (adjusted for pan offset)
+    // X-axis labels (adjusted for pan offset) - matching original SCC
+    ctx.fillStyle = CONFIG.colors.sccCyan;
+    ctx.font = "400 12px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -1034,19 +1042,19 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 }
 
 function drawAxisLabels(ctx, width, height, margin) {
-    // Y-axis label (rotated)
+    // Y-axis label (rotated) - matching original SCC
     ctx.save();
-    ctx.fillStyle = CONFIG.colors.burgundy;
-    ctx.font = "600 11px 'IBM Plex Mono', monospace";
+    ctx.fillStyle = CONFIG.colors.sccCyan;
+    ctx.font = "600 12px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillText('COUNT PER MINUTE', 0, 0);
     ctx.restore();
 
-    // Week label at top
-    ctx.fillStyle = CONFIG.colors.burgundy;
-    ctx.font = "600 10px 'IBM Plex Mono', monospace";
+    // Week label at top - matching original SCC
+    ctx.fillStyle = CONFIG.colors.sccCyan;
+    ctx.font = "600 11px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 20);
 }
