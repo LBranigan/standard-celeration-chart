@@ -954,7 +954,7 @@ function drawGrid(ctx, width, height, xMax, zoomConfig) {
 
     // Week number labels at top (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "400 11px Arial, Helvetica, sans-serif";
+    ctx.font = "11px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
 
     const weekInterval = zoomConfig.weekInterval;
@@ -1012,7 +1012,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
     };
 
     // All Y-axis labels use same font (matching original SCC)
-    ctx.font = "400 12px Arial, Helvetica, sans-serif";
+    ctx.font = "12px Arial, Helvetica, sans-serif";
 
     // Major lines (powers of 10): 1000, 100, 10, 1, .1, .01, .001
     CONFIG.majorLogLines.forEach(value => {
@@ -1028,7 +1028,7 @@ function drawAxes(ctx, width, height, xMax, zoomConfig) {
 
     // X-axis labels (adjusted for pan offset) - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "400 12px Arial, Helvetica, sans-serif";
+    ctx.font = "12px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -1045,7 +1045,7 @@ function drawAxisLabels(ctx, width, height, margin) {
     // Y-axis label (rotated) - matching original SCC
     ctx.save();
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "600 12px Arial, Helvetica, sans-serif";
+    ctx.font = "bold 11px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.translate(20, height / 2);
     ctx.rotate(-Math.PI / 2);
@@ -1054,7 +1054,7 @@ function drawAxisLabels(ctx, width, height, margin) {
 
     // Week label at top - matching original SCC
     ctx.fillStyle = CONFIG.colors.sccCyan;
-    ctx.font = "600 11px Arial, Helvetica, sans-serif";
+    ctx.font = "bold 11px Arial, Helvetica, sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('SUCCESSIVE CALENDAR WEEKS', width / 2, 20);
 }
